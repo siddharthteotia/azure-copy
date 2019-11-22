@@ -6,13 +6,9 @@ import com.microsoft.azure.storage.blob.ServiceURL;
 import com.microsoft.azure.storage.blob.SharedKeyCredentials;
 import com.microsoft.azure.storage.blob.StorageURL;
 import com.microsoft.azure.storage.blob.TransferManager;
-import com.microsoft.rest.v2.http.HttpClient;
-import com.microsoft.rest.v2.http.HttpClientConfiguration;
 import com.microsoft.rest.v2.http.HttpPipeline;
 import io.reactivex.Single;
 import java.io.File;
-import java.net.InetSocketAddress;
-import java.net.Proxy;
 import java.net.URL;
 import java.nio.channels.AsynchronousFileChannel;
 import java.nio.file.StandardOpenOption;
@@ -35,8 +31,6 @@ public class AzureDataTransfer {
   private AzureDataTransfer(
       AzureStorageAccountInfo azureStorageAccountInfo,
       final String pathToAvroFilesDirectory,
-      final String proxyHostName,
-      final int proxyPort,
       final int threadPoolSize
       ) throws Exception {
 
@@ -51,12 +45,7 @@ public class AzureDataTransfer {
 
     System.out.println("Successfully created the credentials to access the storage account");
 
-    final Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHostName, proxyPort));
-    final HttpClient httpClient = HttpClient.createDefault(new HttpClientConfiguration(proxy));
-
-    System.out.println("Using HTTP Proxy: " + proxy.toString());
-
-    final PipelineOptions pipelineOptions = new PipelineOptions().withClient(httpClient);
+    final PipelineOptions pipelineOptions = new PipelineOptions();
     final HttpPipeline httpPipeline = StorageURL.createPipeline(sharedKeyCredentials, pipelineOptions);
     final URL accountURL;
     final ServiceURL serviceURL;
@@ -203,11 +192,12 @@ public class AzureDataTransfer {
   }
 
   public static void main(String[] args) throws Exception {
-    if (args.length != 7
+    if (args.length != 5
         || args[0].equalsIgnoreCase("help")
         || args[0].equalsIgnoreCase("-h")
         || args[0].equalsIgnoreCase("-help")) {
       printUsage();
+      return;
     }
 
     final String azureStorageAccountName = args[0];
@@ -215,13 +205,11 @@ public class AzureDataTransfer {
     final String azureStorageAccountKey = args[2];
     final String azureStorageContainer = args[3];
     final String pathToAvroFiles = args[4];
-    final String proxyHostName = args[5];
-    final int proxyPort = Integer.parseInt(args[6]);
 
     AzureStorageAccountInfo azureStorageAccountInfo =
         new AzureStorageAccountInfo(azureStorageAccountName, azureStorageAccountURL, azureStorageAccountKey, azureStorageContainer);
 
-    AzureDataTransfer azureDataTransfer = new AzureDataTransfer(azureStorageAccountInfo, pathToAvroFiles, proxyHostName, proxyPort, 5);
+    AzureDataTransfer azureDataTransfer = new AzureDataTransfer(azureStorageAccountInfo, pathToAvroFiles, 5);
     azureDataTransfer.upload();
   }
 
@@ -232,9 +220,7 @@ public class AzureDataTransfer {
         .append("Azure storage account url (STRING)\n")
         .append("Azure storage account key (STRING)\n")
         .append("Azure storage account container (STRING)\n")
-        .append("Absolute path to directory containing gzipped Avro files (STRING)\n")
-        .append("Proxy host name (STRING)\n")
-        .append("Proxy port (INT)\n");
+        .append("Absolute path to directory containing gzipped Avro files (STRING)\n");
     System.out.println(sb.toString());
   }
 }
