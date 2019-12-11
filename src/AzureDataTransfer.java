@@ -62,10 +62,22 @@ public class AzureDataTransfer {
 
     try {
       _azureStorageContainerURL = serviceURL.createContainerURL(azureStorageAccountInfo._azureStorageContainer);
+    } catch (Exception e) {
+      System.out.println("ERROR: Failed to create container URL");
+      throw e;
+    }
+
+    System.out.println("Successfully created container URL");
+
+    try {
       _azureStorageContainerURL.create().blockingGet();
     } catch (Exception e) {
       System.out.println("ERROR: Failed to create container");
-      throw e;
+      if (e.getMessage().contains("specified container already exist")) {
+        System.out.println("Container exists");
+      } else {
+        throw e;
+      }
     }
 
     System.out.println("Successfully created container");
